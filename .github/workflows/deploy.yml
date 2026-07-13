@@ -40,6 +40,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get runner IP address
+        id: ip
+        uses: haythem/public-ip@v1.3.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Authorize SSH IP in Security Group
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
+
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -85,3 +104,12 @@ jobs:
           script: |
             curl -sf http://localhost:${{ secrets.APP_PORT || '3000' }}/health || exit 1
             echo "Health check passed."
+
+      - name: Revoke SSH IP in Security Group
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${{ steps.ip.outputs.ipv4 }}/32
