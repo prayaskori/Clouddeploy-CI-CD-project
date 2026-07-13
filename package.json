@@ -1,0 +1,44 @@
+{
+  "name": "clouddeploy-cicd",
+  "version": "1.0.0",
+  "description": "CloudDeploy CI/CD - Automated AWS Deployment Pipeline with Node.js, Express, EC2, S3, and GitHub Actions",
+  "main": "app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "test": "node --test tests/*.test.js",
+    "build": "echo 'No build step required for Node.js runtime' && exit 0",
+    "lint": "echo 'Lint step placeholder - integrate eslint if desired' && exit 0"
+  },
+  "keywords": [
+    "aws",
+    "ec2",
+    "s3",
+    "iam",
+    "devops",
+    "cicd",
+    "github-actions",
+    "rest-api",
+    "monitoring",
+    "automation",
+    "cloud-security",
+    "infrastructure"
+  ],
+  "author": "CloudDeploy Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/lib-storage": "^3.600.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "systeminformation": "^5.22.11"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

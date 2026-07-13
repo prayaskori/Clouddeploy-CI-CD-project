@@ -1,0 +1,87 @@
+name: CloudDeploy CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build-and-test:
+    name: Install, Test, Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build project
+        run: npm run build
+
+  deploy:
+    name: Deploy to EC2
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    # Only deploy when build-and-test succeeds on main
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+            APP_DIR="/home/${{ secrets.EC2_USERNAME }}/clouddeploy"
+
+            if [ ! -d "$APP_DIR" ]; then
+              git clone ${{ secrets.REPO_URL }} "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+
+            echo "Pulling latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "Installing dependencies..."
+            npm ci --omit=dev
+
+            echo "Restarting application with PM2..."
+            if pm2 describe clouddeploy > /dev/null 2>&1; then
+              pm2 restart clouddeploy --update-env
+            else
+              pm2 start app.js --name clouddeploy
+            fi
+
+            pm2 save
+
+            echo "Deployment complete."
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            curl -sf http://localhost:${{ secrets.APP_PORT || '3000' }}/health || exit 1
+            echo "Health check passed."

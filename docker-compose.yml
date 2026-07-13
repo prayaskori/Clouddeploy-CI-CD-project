@@ -1,0 +1,28 @@
+services:
+  clouddeploy-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clouddeploy-api:latest
+    container_name: clouddeploy-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
+      # AWS credentials are intentionally NOT hardcoded here.
+      # On EC2, the container inherits the instance's IAM Role credentials
+      # automatically via the instance metadata service. For local Docker
+      # testing only, you may mount ~/.aws as shown below.
+    volumes:
+      - ~/.aws:/home/clouddeploy/.aws:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
