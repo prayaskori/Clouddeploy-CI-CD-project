@@ -42,7 +42,7 @@ jobs:
 
       - name: Get runner IP address
         id: ip
-        uses: haythem/public-ip@v1.3.0
+        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
