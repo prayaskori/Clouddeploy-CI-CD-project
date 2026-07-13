@@ -29,3 +29,9 @@ test('GET /unknown-route returns 404', async () => {
   const res = await request(app).get('/unknown-route');
   assert.strictEqual(res.status, 404);
 });
+
+test('DELETE /files without key returns 400', async () => {
+  const res = await request(app).delete('/files');
+  assert.strictEqual(res.status, 400);
+  assert.ok(res.body.message.includes('key is required'));
+});

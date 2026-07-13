@@ -13,4 +13,7 @@ router.get('/files', fileController.listFiles);
 // GET /files/download - downloads a file using its S3 key
 router.get('/files/download', fileController.downloadFile);
 
+// DELETE /files - deletes a file using its S3 key
+router.delete('/files', fileController.deleteFile);
+
 module.exports = router;

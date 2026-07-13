@@ -329,6 +329,35 @@
       box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
     }
 
+    .file-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .delete-btn {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--error);
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .delete-btn:hover {
+      background: var(--error);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+      border-color: transparent;
+    }
+
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
@@ -526,6 +555,30 @@
       xhr.send(formData);
     }
 
+    // Delete file from S3
+    async function deleteFile(key) {
+      const displayName = key.replace(/^uploads\/[a-f0-9-]{36}-/, '');
+      if (!confirm(`Are you sure you want to delete "${displayName}"?`)) {
+        return;
+      }
+
+      setStatus(`Deleting ${displayName}...`, 'info');
+      try {
+        const response = await fetch(`/files?key=${encodeURIComponent(key)}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+          setStatus('File deleted successfully', 'success');
+          fetchFiles();
+        } else {
+          setStatus(data.message || 'Delete failed', 'error');
+        }
+      } catch (err) {
+        setStatus('Network error during deletion', 'error');
+      }
+    }
+
     // Fetch and render files from S3
     async function fetchFiles() {
       try {
@@ -571,9 +624,14 @@
                 <div class="file-meta">${sizeStr} • ${dateStr}</div>
               </div>
             </div>
-            <a href="/files/download?key=${encodeURIComponent(fullKey)}" class="download-btn" title="Download file" download>
-              📥
-            </a>
+            <div class="file-actions">
+              <a href="/files/download?key=${encodeURIComponent(fullKey)}" class="download-btn" title="Download file" download>
+                📥
+              </a>
+              <button onclick="deleteFile('${fullKey.replace(/'/g, "\\'")}')" class="delete-btn" title="Delete file">
+                🗑️
+              </button>
+            </div>
           </div>
         `;
       }).join('');

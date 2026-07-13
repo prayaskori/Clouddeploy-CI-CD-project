@@ -4,6 +4,7 @@ const {
   PutObjectCommand,
   ListObjectsV2Command,
   GetObjectCommand,
+  DeleteObjectCommand,
 } = require('@aws-sdk/client-s3');
 const { s3Client, BUCKET_NAME } = require('../config/s3.config');
 
@@ -118,4 +119,36 @@ async function downloadFile(req, res, next) {
   }
 }
 
-module.exports = { uploadFile, listFiles, downloadFile };
+// DELETE /files - deletes a file from S3 using its key
+async function deleteFile(req, res, next) {
+  try {
+    const { key } = req.query;
+    if (!key) {
+      const error = new Error('File key is required. Pass it using the "key" query parameter.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!BUCKET_NAME) {
+      const error = new Error('S3_BUCKET_NAME is not configured on the server.');
+      error.statusCode = 500;
+      throw error;
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+
+    res.status(200).json({
+      success: true,
+      message: 'File deleted successfully',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { uploadFile, listFiles, downloadFile, deleteFile };
