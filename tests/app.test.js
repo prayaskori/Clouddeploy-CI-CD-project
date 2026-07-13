@@ -10,10 +10,10 @@ process.env.S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || 'test-bucket';
 
 const app = require('../app');
 
-test('GET / returns running message', async () => {
+test('GET / returns dashboard HTML', async () => {
   const res = await request(app).get('/');
   assert.strictEqual(res.status, 200);
-  assert.strictEqual(res.text, 'CloudDeploy API Running');
+  assert.ok(res.text.includes('<title>CloudDeploy S3 File Manager</title>'));
 });
 
 test('GET /health returns system metrics', async () => {

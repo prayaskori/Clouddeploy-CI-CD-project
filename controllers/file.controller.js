@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const {
   PutObjectCommand,
   ListObjectsV2Command,
+  GetObjectCommand,
 } = require('@aws-sdk/client-s3');
 const { s3Client, BUCKET_NAME } = require('../config/s3.config');
 
@@ -82,4 +83,39 @@ async function listFiles(req, res, next) {
   }
 }
 
-module.exports = { uploadFile, listFiles };
+// GET /files/download - retrieves a file from S3 and streams it to the client
+async function downloadFile(req, res, next) {
+  try {
+    const { key } = req.query;
+    if (!key) {
+      const error = new Error('File key is required. Pass it using the "key" query parameter.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!BUCKET_NAME) {
+      const error = new Error('S3_BUCKET_NAME is not configured on the server.');
+      error.statusCode = 500;
+      throw error;
+    }
+
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    const data = await s3Client.send(command);
+
+    res.setHeader('Content-Type', data.ContentType || 'application/octet-stream');
+    
+    // Extract filename from S3 key (stripping prefix and random UUID prefix)
+    const displayName = key.replace(/^uploads\/[a-f0-9-]{36}-/, '') || key.split('/').pop();
+    res.setHeader('Content-Disposition', `attachment; filename="${displayName}"`);
+
+    data.Body.pipe(res);
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { uploadFile, listFiles, downloadFile };
